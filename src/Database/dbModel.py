@@ -8,13 +8,13 @@ class Processos(SQLModel, table=True):
     n_freetime: int | None = Field(default=None)
     data_eta: Date | None = Field(default=None)
     numerario_fechado: int = Field(default=False, nullable=False)
-    _deleted: bool = Field(default=False, nullable=False)
+    excluido: bool = Field(default=False, nullable=False)
 
 class Containers(SQLModel, table=True):
     namekey: str = Field(nullable=False, unique=True, primary_key=True, index=True)
     tipo_container: int = Field(nullable=False)
     codigo_container: int = Field(nullable=False)
-    _deleted: bool = Field(default=False, nullable=False)
+    excluido: bool = Field(default=False, nullable=False)
 
 class Carregamentos(SQLModel, table = True):
     id: int | None = Field(default=None, primary_key=True, nullable=False, unique=True)
@@ -35,8 +35,8 @@ class Carregamentos(SQLModel, table = True):
     pagamento_realizado: bool = Field(default=False, nullable=False)
     arquivos_enviados: str = Field(nullable=False) # JSON Array (type notation: json[])
     processo_finalizado: bool = Field(default=False, nullable=False)
-    _log_mudancas: str = Field(default=None, nullable=False) # JSON Array (type notation: json[])
-    _deleted: bool = Field(default=False, nullable=False)
+    log_mudancas: str = Field(default=None, nullable=False) # JSON Array (type notation: json[])
+    excluido: bool = Field(default=False, nullable=False)
 
 class Dados_tol(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)

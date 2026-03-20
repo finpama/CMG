@@ -54,12 +54,20 @@ async def refresh(requestBody: refresh_request):
 
 
 class createDB_request(BaseModel):
-    databaseLog: bool = False
+    name: str
+    location: str
+    dumpData: bool = False
+    echoSQL: bool = False
 
 @app.post('/create-database')
 async def createDB(requestBody: createDB_request):
-    asyncio.create_task(dbController.create_db())
-    # asyncio.create_task(TolController.dump_data())
+    
+    name, path, echo = requestBody.name, requestBody.location, requestBody.echoSQL
+    asyncio.create_task(dbController.create_db(name, path, echo))
+    
+    if requestBody.dumpData:
+        print('DUMPING TUDO')
+        # asyncio.create_task(TolController.dump_data())
     
     results = [{"request": requestBody}]
     return defaltResponse(results=results)
