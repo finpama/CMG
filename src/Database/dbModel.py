@@ -7,7 +7,7 @@ class Processos(SQLModel, table=True):
     n_containers: int = Field(nullable=False)
     n_freetime: int | None = Field(default=None)
     data_eta: Date | None = Field(default=None)
-    numerario_fechado: int = Field(default=False, nullable=False)
+    numerario_fechado: bool = Field(default=False, nullable=False)
     excluido: bool = Field(default=False, nullable=False)
 
 class Containers(SQLModel, table=True):

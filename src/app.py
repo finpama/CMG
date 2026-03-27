@@ -1,15 +1,16 @@
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
 import asyncio
-from fastapi.middleware.cors import CORSMiddleware
+
 
 from .Tol import TolController
 from .Database import dbController
+from .Database import dbModel
 
 from pydantic import BaseModel
-import json
 from typing import Any
 
+from datetime import datetime as Date
 
 
 class defaltResponse(BaseModel):
@@ -53,21 +54,44 @@ async def refresh(requestBody: refresh_request):
 
 
 
-class createDB_request(BaseModel):
-    name: str
-    location: str
-    dumpData: bool = False
-    echoSQL: bool = False
-
 @app.post('/create-database')
-async def createDB(requestBody: createDB_request):
+async def createDB():
     
-    name, path, echo = requestBody.name, requestBody.location, requestBody.echoSQL
-    asyncio.create_task(dbController.create_db(name, path, echo))
+    asyncio.create_task(dbController.create_db())
     
-    if requestBody.dumpData:
-        print('DUMPING TUDO')
-        # asyncio.create_task(TolController.dump_data())
     
-    results = [{"request": requestBody}]
-    return defaltResponse(results=results)
+    return defaltResponse(results=[])
+
+
+class InsertProcesso_request(BaseModel):
+    namekey: str
+    n_containers: int
+    n_freetime: int | None = None
+    data_eta: Date | None = None 
+    numerario_fechado: bool = False
+    excluido: bool = False
+    
+
+@app.post('/processo/novo')
+async def insertProcesso(request_body: InsertProcesso_request):
+    
+    processo = dbModel.Processos(
+        namekey = request_body.namekey,
+        n_containers = request_body.n_containers,
+        n_freetime = request_body.n_freetime,
+        data_eta = request_body.data_eta,
+        numerario_fechado = request_body.numerario_fechado,
+        excluido = request_body.excluido,
+    )
+    
+    task = asyncio.create_task(dbController.insert_processo(processo))
+    
+    await task
+    tastResult = task.result()
+    
+    if tastResult == 0:
+        response =  defaltResponse(statusCode='201',results=[{"created":processo}])
+    else:
+        response =  defaltResponse(statusCode='400',results=[{"failed_to_create":processo}], isError=True, errorMessage=tastResult.args[0])
+    
+    return response
