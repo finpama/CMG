@@ -35,11 +35,10 @@ class Carregamentos(SQLModel, table = True):
     pagamento_realizado: bool = Field(default=False, nullable=False)
     arquivos_enviados: str = Field(nullable=False) # JSON Array (type notation: json[])
     processo_finalizado: bool = Field(default=False, nullable=False)
-    log_mudancas: str = Field(default=None, nullable=False) # JSON Array (type notation: json[])
     excluido: bool = Field(default=False, nullable=False)
 
 class Dados_tol(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
-    data: Date = Field(nullable=False)
+    data_refresh: Date = Field(nullable=False)
     dados_agendamento: str = Field(nullable=False) # JSON
     dados_processos: str = Field(nullable=False) # JSON

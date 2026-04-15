@@ -1,6 +1,7 @@
 Testes/
 *password*
 *.db
+*_response*
 
 
 # Byte-compiled / optimized / DLL files

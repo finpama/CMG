@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+import uvicorn
 from contextlib import asynccontextmanager
 import asyncio
 
@@ -24,8 +25,14 @@ class defaltResponse(BaseModel):
 async def lifespan(app: FastAPI):
     # startup:
     print('\n[app]: running startup')
-    asyncio.create_task(TolController.auto_refresh())
     
+    print('\n[app]: creating database engine...')
+    asyncio.create_task(dbController.createDb_engine())
+    print('\n[app]: database engine created.')
+    
+    print('\n[app]: setting TOL auto refresher...')
+    asyncio.create_task(TolController.auto_refresh())
+    print('\n[app]: TOL auto refresher set.')
     
     yield
     # shutdown:
@@ -38,27 +45,25 @@ app = FastAPI(lifespan=lifespan)
 
 @app.get("/")
 def read_status():
-    return {"last_refresh": TolController.lastRefresh}
+    return {
+        "last_refresh": TolController.lastRefresh,
+    }
 
 
-class refresh_request(BaseModel):
-    refreshLog: bool = False
+
+@app.get("/refresh")
+async def refresh():
+    await TolController.refresh()
     
-
-@app.post("/refresh")
-async def refresh(requestBody: refresh_request):
-    await TolController.refresh(requestBody.refreshLog)
-    
-    results = [{"request": requestBody}, {"new_refresh": TolController.lastRefresh}]
-    return defaltResponse(results=results)
+    resultados = [{"new_refresh": TolController.lastRefresh}]
+    return defaltResponse(results=resultados)
 
 
 
 @app.post('/create-database')
 async def createDB():
     
-    asyncio.create_task(dbController.create_db())
-    
+    asyncio.create_task(dbController.createDb_engine())
     
     return defaltResponse(results=[])
 
@@ -85,8 +90,8 @@ async def insertProcesso(request_body: InsertProcesso_request):
     )
     
     task = asyncio.create_task(dbController.insert_processo(processo))
-    
     await task
+    
     tastResult = task.result()
     
     if tastResult == 0:
@@ -95,3 +100,10 @@ async def insertProcesso(request_body: InsertProcesso_request):
         response =  defaltResponse(statusCode='400',results=[{"failed_to_create":processo}], isError=True, errorMessage=tastResult.args[0])
     
     return response
+
+
+
+
+
+if __name__ == "__main__":
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
