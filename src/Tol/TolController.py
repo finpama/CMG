@@ -1,11 +1,16 @@
 import asyncio
 import requests as req
 import json
+import logging
 
 from datetime import datetime, timedelta
 
-from ..config_reader import read_configFile
+from ..utils.config_reader import read_configFile
 from ..Database import dbController, dbModel
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 
 # delay de atualização em segundos
 hour = read_configFile('tolController', 'refreshDelayHours')
@@ -57,10 +62,10 @@ async def refresh():
     insertDados_taskResult = insertDados_task.result()
     
     if insertDados_taskResult == 0 :
-        print(f"\n[TolController]: successfuly refreshed at: {lastRefresh}")
+        logger.info(f"Successfuly refreshed at: {lastRefresh}")
     else:
-        print(f"\n[TolController]: failed refreshing at: {lastRefresh}. Error below:\n")
-        print(insertDados_taskResult.args[0])
+        logger.info(f"Failed refreshing at: {lastRefresh}. Error below:\n")
+        logger.info(insertDados_taskResult.args[0])
 
 
 async def auto_refresh():
@@ -73,8 +78,8 @@ async def auto_refresh():
     
     if isinstance(selectLastRefresh_taskResult, dbController.IntegrityError):
         
-        print(f"\n[TolController]: refreshing now: failed getting lastRefresh in database. Error:")
-        print(selectLastRefresh_taskResult)
+        logger.error(f"Refreshing now: failed getting lastRefresh in database. Error:")
+        logger.error(selectLastRefresh_taskResult)
         
         lastRefresh = datetime.now() - timedelta(days=1) # define o lastRefresh em memória para um dia atrás, forçando o refresh
         
@@ -83,9 +88,9 @@ async def auto_refresh():
         lastRefresh = selectLastRefresh_taskResult.data_refresh
         
         if lastRefresh != None:
-            print(f"\n[TolController]: successfuly got lastRefresh in database: {lastRefresh}")
+            logger.info(f"Successfuly got lastRefresh in database: {lastRefresh}")
         else:
-            print(f"\n[TolController]: 0 refreshes found in database. Refreshing now...")
+            logger.info(f"0 refreshes found in database. Refreshing now...")
             lastRefresh = datetime.now() - timedelta(days=1) # define o lastRefresh em memória para um dia atrás, forçando o refresh
         
         
@@ -93,9 +98,9 @@ async def auto_refresh():
         lastRefresh = selectLastRefresh_taskResult[1]
         
         if lastRefresh != None:
-            print(f"\n[TolController]: successfuly got lastRefresh in database: {lastRefresh}")
+            logger.info(f"Successfuly got lastRefresh in database: {lastRefresh}")
         else:
-            print(f"\n[TolController]: 0 refreshes found in database. Refreshing now...")
+            logger.info(f"0 refreshes found in database. Refreshing now...")
             lastRefresh = datetime.now() - timedelta(days=1) # define o lastRefresh em memória para um dia atrás, forçando o refresh
         
     

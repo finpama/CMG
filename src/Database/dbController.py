@@ -2,9 +2,13 @@
 from sqlmodel import SQLModel, create_engine, Session, select, func
 from sqlalchemy.exc import IntegrityError
 from typing import Literal
+import logging
 
-from ..config_reader import read_configFile
+from ..utils.config_reader import read_configFile
 from ..Database import dbModel
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 config = read_configFile('databaseConfig')
 
@@ -19,7 +23,7 @@ ENGINE = create_engine(url=DatabaseConfig.sqlite_url, echo=DatabaseConfig.echo_S
 
 
 async def createDb_engine():
-    print(f'\n[dbController]: creating or/and loading the database in "{DatabaseConfig.sqlite_file_name}" with the engine.')
+    logger.info(f'\n[dbController]: creating or/and loading the database in "{DatabaseConfig.sqlite_file_name}" with the engine.')
     
     SQLModel.metadata.create_all(ENGINE)
 

@@ -2,7 +2,7 @@ from fastapi import FastAPI
 import uvicorn
 from contextlib import asynccontextmanager
 import asyncio
-
+import logging
 
 from .Tol import TolController
 from .Database import dbController
@@ -12,6 +12,10 @@ from pydantic import BaseModel
 from typing import Any
 
 from datetime import datetime as Date
+
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 class defaltResponse(BaseModel):
@@ -24,19 +28,19 @@ class defaltResponse(BaseModel):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # startup:
-    print('\n[app]: running startup')
+    logger.info('running startup')
     
-    print('\n[app]: creating database engine...')
+    logger.info('Creating database engine...')
     asyncio.create_task(dbController.createDb_engine())
-    print('\n[app]: database engine created.')
+    logger.info('Database engine created.')
     
-    print('\n[app]: setting TOL auto refresher...')
+    logger.info('Setting TOL auto refresher...')
     asyncio.create_task(TolController.auto_refresh())
-    print('\n[app]: TOL auto refresher set.')
+    logger.info('TOL auto refresher set.')
     
     yield
     # shutdown:
-    print('\n[app]: running shutdown')
+    print('Running shutdown')
     
     
 
