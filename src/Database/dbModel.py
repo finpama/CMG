@@ -12,8 +12,8 @@ class Processos(SQLModel, table=True):
 
 class Containers(SQLModel, table=True):
     namekey: str = Field(nullable=False, unique=True, primary_key=True, index=True)
-    tipo_container: int = Field(nullable=False)
-    codigo_container: int = Field(nullable=False)
+    tipo_container: str = Field(nullable=False)
+    codigo_armador: str = Field(nullable=False)
     excluido: bool = Field(default=False, nullable=False)
 
 class Carregamentos(SQLModel, table = True):
@@ -35,6 +35,7 @@ class Carregamentos(SQLModel, table = True):
     pagamento_realizado: bool = Field(default=False, nullable=False)
     arquivos_enviados: str = Field(nullable=False) # JSON Array (type notation: json[])
     processo_finalizado: bool = Field(default=False, nullable=False)
+    titulo_financeiro: str | None = Field(nullable=True) # JSON
     excluido: bool = Field(default=False, nullable=False)
 
 class Dados_tol(SQLModel, table=True):

@@ -1,6 +1,6 @@
 {
     "tolController": {
-        "refreshDelayHours": 4
+        "refreshDelayHours": 3
     },
     "databaseConfig": {
         "sqlite_file_name": "database.db",

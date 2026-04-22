@@ -23,12 +23,11 @@ ENGINE = create_engine(url=DatabaseConfig.sqlite_url, echo=DatabaseConfig.echo_S
 
 
 async def createDb_engine():
-    logger.info(f'\n[dbController]: creating or/and loading the database in "{DatabaseConfig.sqlite_file_name}" with the engine.')
+    logger.info(f'Creating or/and loading the database in "{DatabaseConfig.sqlite_file_name}" with the engine.')
     
     SQLModel.metadata.create_all(ENGINE)
 
 async def insert_processo(processo: dbModel.Processos):
-    
     try:
         with Session(ENGINE) as session:
             session.add(processo)
@@ -38,6 +37,33 @@ async def insert_processo(processo: dbModel.Processos):
         
     except IntegrityError as e:
         return e
+
+
+
+async def insert_container(container: dbModel.Containers):
+    try:
+        with Session(ENGINE) as session:
+            session.add(container)
+            session.commit()
+            
+            return 0
+        
+    except IntegrityError as e:
+        return e
+
+
+async def insert_carregamento(carregamento: dbModel.Carregamentos):
+    try:
+        with Session(ENGINE) as session:
+            session.add(carregamento)
+            session.commit()
+            
+            return 0
+        
+    except IntegrityError as e:
+        return e
+
+
 
 async def insert_dados_tol(dado_tol: dbModel.Dados_tol):
     try:

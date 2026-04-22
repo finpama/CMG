@@ -6,7 +6,7 @@ import logging
 
 from .Tol import TolController
 from .Database import dbController
-from .Database import dbModel
+from .Database.dbController import dbModel
 
 from pydantic import BaseModel
 from typing import Any
@@ -39,6 +39,7 @@ async def lifespan(app: FastAPI):
     logger.info('TOL auto refresher set.')
     
     yield
+    
     # shutdown:
     print('Running shutdown')
     
@@ -64,15 +65,7 @@ async def refresh():
 
 
 
-@app.post('/create-database')
-async def createDB():
-    
-    asyncio.create_task(dbController.createDb_engine())
-    
-    return defaltResponse(results=[])
-
-
-class InsertProcesso_request(BaseModel):
+class post_processo_request(BaseModel):
     namekey: str
     n_containers: int
     n_freetime: int | None = None
@@ -82,7 +75,7 @@ class InsertProcesso_request(BaseModel):
     
 
 @app.post('/processo/novo')
-async def insertProcesso(request_body: InsertProcesso_request):
+async def post_processo(request_body: post_processo_request):
     
     processo = dbModel.Processos(
         namekey = request_body.namekey,
@@ -99,9 +92,101 @@ async def insertProcesso(request_body: InsertProcesso_request):
     tastResult = task.result()
     
     if tastResult == 0:
-        response =  defaltResponse(statusCode='201',results=[{"created":processo}])
+        response =  defaltResponse(statusCode='201',results=[])
     else:
         response =  defaltResponse(statusCode='400',results=[{"failed_to_create":processo}], isError=True, errorMessage=tastResult.args[0])
+    
+    return response
+
+
+class post_container_request(BaseModel):
+    namekey: str
+    tipo_container: str
+    codigo_armador: str
+    excluido: bool = False
+    
+
+
+@app.post('/container/novo')
+async def post_container(request_body: post_container_request):
+    
+    container = dbModel.Containers(
+        namekey = request_body.namekey,
+        tipo_container = request_body.tipo_container,
+        codigo_armador = request_body.codigo_armador,
+        excluido = request_body.excluido,
+    )
+    
+    task = asyncio.create_task(dbController.insert_container(container))
+    await task
+    
+    tastResult = task.result()
+    
+    if tastResult == 0:
+        response =  defaltResponse(statusCode='201',results=[])
+    else:
+        response =  defaltResponse(statusCode='400',results=[{"failed_to_create":container}], isError=True, errorMessage=tastResult.args[0])
+    
+    return response
+
+
+class post_carregamento_request(BaseModel):
+    processo: str | None = None 
+    container: str | None = None 
+    terminal: str | None = None 
+    transportadora: str | None = None
+    status_agendamento: str | None = None 
+    data_devolucao: Date | None = None 
+    minuta_recebida: bool 
+    demurrage: bool | None = None 
+    data_inspecao: Date | None = None 
+    cdk_tratativa: str | None = None 
+    cobrancas_html: str | None = None 
+    cobrancas_itens: str | None = None  # JSON Array (type notation: json[])
+    data_solicitacao_isencao: Date | None = None 
+    valor_devido: float | None = None 
+    pagamento_realizado: bool
+    arquivos_enviados: str 
+    processo_finalizado: bool
+    titulo_financeiro: str | None = None 
+    excluido: bool = False
+    
+
+@app.post('/carregamento/novo')
+async def post_carregamento(request_body: post_carregamento_request):
+    
+    carregamento = dbModel.Carregamentos(
+        id = None,
+        processo = request_body.processo, 
+        container = request_body.container, 
+        terminal = request_body.terminal, 
+        transportadora = request_body.transportadora,
+        status_agendamento = request_body.status_agendamento, 
+        data_devolucao = request_body.data_devolucao, 
+        minuta_recebida = request_body.minuta_recebida,
+        demurrage = request_body.demurrage, 
+        data_inspecao = request_body.data_inspecao, 
+        cdk_tratativa = request_body.cdk_tratativa, 
+        cobrancas_html = request_body.cobrancas_html, 
+        cobrancas_itens = request_body.cobrancas_itens,  
+        data_solicitacao_isencao = request_body.data_solicitacao_isencao, 
+        valor_devido = request_body.valor_devido, 
+        pagamento_realizado = request_body.pagamento_realizado,
+        arquivos_enviados = request_body.arquivos_enviados,
+        processo_finalizado = request_body.processo_finalizado,
+        titulo_financeiro = request_body.titulo_financeiro, 
+        excluido = request_body.excluido,
+    )
+    
+    task = asyncio.create_task(dbController.insert_carregamento(carregamento))
+    await task
+    
+    tastResult = task.result()
+    
+    if tastResult == 0:
+        response =  defaltResponse(statusCode='201',results=[])
+    else:
+        response =  defaltResponse(statusCode='400',results=[{"failed_to_create":carregamento}], isError=True, errorMessage=tastResult.args[0])
     
     return response
 
