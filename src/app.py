@@ -1,6 +1,9 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Response, status
+from fastapi.responses import JSONResponse
+from fastapi.encoders import jsonable_encoder
 import uvicorn
 from contextlib import asynccontextmanager
+from sqlalchemy.exc import IntegrityError, NoResultFound
 import asyncio
 import logging
 
@@ -12,17 +15,32 @@ from pydantic import BaseModel
 from typing import Any
 
 from datetime import datetime as Date
+from dataclasses import dataclass
 
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-class defaltResponse(BaseModel):
-    statusCode: str = "200"
+class defaultResponse(BaseModel):
+    statusCode: int = 200
     isError: bool = False
     errorMessage: str = "null"
     results: list[Any] = []
+
+
+class DefaultResponse():
+    statusCode: int 
+    isError: bool 
+    errorMessage: str
+    results: list[Any]
+    
+    def __init__(self, statusCode=200, isError=False, errorMessage="null", results=[]) -> None:
+        self.statusCode = statusCode
+        self.isError = isError
+        self.errorMessage = errorMessage
+        self.results = results
+
 
 
 @asynccontextmanager
@@ -61,7 +79,7 @@ async def refresh():
     await TolController.refresh()
     
     resultados = [{"new_refresh": TolController.lastRefresh}]
-    return defaltResponse(results=resultados)
+    return defaultResponse(results=resultados)
 
 
 
@@ -86,17 +104,21 @@ async def post_processo(request_body: post_processo_request):
         excluido = request_body.excluido,
     )
     
-    task = asyncio.create_task(dbController.insert_processo(processo))
+    task = asyncio.create_task(dbController.create_processo(processo))
     await task
     
     tastResult = task.result()
     
-    if tastResult == 0:
-        response =  defaltResponse(statusCode='201',results=[])
-    else:
-        response =  defaltResponse(statusCode='400',results=[{"failed_to_create":processo}], isError=True, errorMessage=tastResult.args[0])
     
-    return response
+    if not isinstance(tastResult, IntegrityError):
+        response = DefaultResponse(statusCode=status.HTTP_201_CREATED, results=[{"created": request_body}])
+    else:
+        response = DefaultResponse(statusCode=status.HTTP_422_UNPROCESSABLE_CONTENT, results=[{"failed_to_create": request_body}], isError=True, errorMessage=tastResult.args[0])
+    
+    
+    return JSONResponse(jsonable_encoder(response), response.statusCode)
+
+
 
 
 class post_container_request(BaseModel):
@@ -106,28 +128,32 @@ class post_container_request(BaseModel):
     excluido: bool = False
     
 
-
 @app.post('/container/novo')
 async def post_container(request_body: post_container_request):
     
-    container = dbModel.Containers(
+    containerDB = dbModel.Containers(
         namekey = request_body.namekey,
         tipo_container = request_body.tipo_container,
         codigo_armador = request_body.codigo_armador,
         excluido = request_body.excluido,
     )
     
-    task = asyncio.create_task(dbController.insert_container(container))
+    
+    task = asyncio.create_task(dbController.create_container(containerDB))
     await task
     
     tastResult = task.result()
     
-    if tastResult == 0:
-        response =  defaltResponse(statusCode='201',results=[])
-    else:
-        response =  defaltResponse(statusCode='400',results=[{"failed_to_create":container}], isError=True, errorMessage=tastResult.args[0])
     
-    return response
+    if not isinstance(tastResult, IntegrityError):
+        response = DefaultResponse(statusCode=status.HTTP_201_CREATED, results=[{"created": request_body}])
+    else:
+        response = DefaultResponse(statusCode=status.HTTP_422_UNPROCESSABLE_CONTENT, results=[{"failed_to_create": request_body}], isError=True, errorMessage=tastResult.args[0])
+    
+    
+    return JSONResponse(jsonable_encoder(response), response.statusCode)
+
+
 
 
 class post_carregamento_request(BaseModel):
@@ -150,7 +176,6 @@ class post_carregamento_request(BaseModel):
     processo_finalizado: bool
     titulo_financeiro: str | None = None 
     excluido: bool = False
-    
 
 @app.post('/carregamento/novo')
 async def post_carregamento(request_body: post_carregamento_request):
@@ -178,18 +203,105 @@ async def post_carregamento(request_body: post_carregamento_request):
         excluido = request_body.excluido,
     )
     
-    task = asyncio.create_task(dbController.insert_carregamento(carregamento))
+    task = asyncio.create_task(dbController.create_carregamento(carregamento))
     await task
     
     tastResult = task.result()
     
-    if tastResult == 0:
-        response =  defaltResponse(statusCode='201',results=[])
+    if not isinstance(tastResult, IntegrityError):
+        response = DefaultResponse(statusCode=status.HTTP_201_CREATED, results=[{"created": tastResult}])
     else:
-        response =  defaltResponse(statusCode='400',results=[{"failed_to_create":carregamento}], isError=True, errorMessage=tastResult.args[0])
+        response = DefaultResponse(statusCode=status.HTTP_400_BAD_REQUEST, results=[{"failed_to_create": carregamento}])
     
-    return response
+    
+    return JSONResponse(jsonable_encoder(response), status_code=response.statusCode)
 
+
+
+class patch_processo_request(BaseModel):
+    n_containers: int | None = None
+    n_freetime: int | None = None
+    data_eta: Date | None = None 
+    numerario_fechado: bool | None = None
+    excluido: bool | None = None
+    
+
+@app.patch('/processo/{namekey}/editar')
+async def patch_processo(namekey, request_body: patch_processo_request):
+    
+    task = asyncio.create_task(dbController.edit_processo(namekey, request_body))
+    await task
+    
+    tastResult = task.result()
+    
+
+    if isinstance(tastResult, IntegrityError):
+        response = DefaultResponse(statusCode=status.HTTP_400_BAD_REQUEST, results=[{"failed_to_edit":namekey}], isError=True, errorMessage=tastResult.args[0])    
+
+    elif isinstance(tastResult, NoResultFound):
+        response = DefaultResponse(statusCode=status.HTTP_404_NOT_FOUND, results=[{"failed_to_find": namekey}], isError=True, errorMessage=f'O {namekey} não foi encontrado.')
+
+    else:
+        response = DefaultResponse(statusCode=status.HTTP_200_OK, results=[{"edited_successfuly": tastResult}])
+    
+    
+    return JSONResponse(jsonable_encoder(response), status_code=response.statusCode)
+
+
+
+class patch_container_request(BaseModel):
+    tipo_container: str | None = None
+    codigo_armador: str | None = None
+    excluido: bool | None = None
+    
+
+@app.patch('/container/{namekey}/editar')
+async def patch_container(namekey, request_body: patch_container_request):
+    
+    task = asyncio.create_task(dbController.edit_container(namekey, request_body))
+    await task
+    
+    tastResult = task.result()
+    
+    if isinstance(tastResult, IntegrityError):
+        response = DefaultResponse(statusCode=status.HTTP_400_BAD_REQUEST, results=[{"failed_to_edit":namekey}], isError=True, errorMessage=tastResult.args[0])    
+
+    elif isinstance(tastResult, NoResultFound):
+        response = DefaultResponse(statusCode=status.HTTP_404_NOT_FOUND, results=[{"failed_to_find": namekey}], isError=True, errorMessage=f'O {namekey} não foi encontrado.')
+
+    else:
+        response = DefaultResponse(statusCode=status.HTTP_200_OK, results=[{"edited_successfuly": tastResult}])
+    
+    
+    return JSONResponse(jsonable_encoder(response), status_code=response.statusCode)
+
+
+
+class patch_carregamento_request(BaseModel):
+    tipo_container: str | None = None
+    codigo_armador: str | None = None
+    excluido: bool | None = None
+    
+
+@app.patch('/carregamento/{id}/editar')
+async def patch_carregamento(id, request_body: patch_carregamento_request):
+    
+    task = asyncio.create_task(dbController.edit_carregamento(id, request_body))
+    await task
+    
+    tastResult = task.result()
+    
+    if isinstance(tastResult, IntegrityError):
+        response = DefaultResponse(statusCode=status.HTTP_400_BAD_REQUEST, results=[{"failed_to_edit":id}], isError=True, errorMessage=tastResult.args[0])    
+
+    elif isinstance(tastResult, NoResultFound):
+        response = DefaultResponse(statusCode=status.HTTP_404_NOT_FOUND, results=[{"failed_to_find": id}], isError=True, errorMessage=f'O carregamento id:{id} não foi encontrado.')
+
+    else:
+        response = DefaultResponse(statusCode=status.HTTP_200_OK, results=[{"edited_successfuly": tastResult}])
+    
+    
+    return JSONResponse(jsonable_encoder(response), status_code=response.statusCode)
 
 
 

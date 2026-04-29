@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 
 from ..utils.config_reader import read_configFile
 from ..Database import dbController, dbModel
+from sqlalchemy.exc import IntegrityError
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -56,12 +57,12 @@ async def refresh():
         dados_processos = processData,
     )
     
-    insertDados_task = asyncio.create_task(dbController.insert_dados_tol(dados))
+    insertDados_task = asyncio.create_task(dbController.create_dados_tol(dados))
     await insertDados_task
     
     insertDados_taskResult = insertDados_task.result()
     
-    if insertDados_taskResult == 0 :
+    if not isinstance(insertDados_taskResult, IntegrityError):
         logger.info(f"Successfuly refreshed at: {lastRefresh}")
     else:
         logger.info(f"Failed refreshing at: {lastRefresh}. Error below:\n")

@@ -20,6 +20,7 @@ class Carregamentos(SQLModel, table = True):
     id: int | None = Field(default=None, primary_key=True, nullable=False, unique=True)
     processo: str | None = Field(default=None, nullable=True, foreign_key="processos.namekey", index=True)
     container: str | None = Field(default=None, nullable=True, foreign_key="containers.namekey", index=True)
+    data_presenca_carga: Date | None = Field(default=None, nullable=True)
     terminal: str | None = Field(default=None, nullable=True)
     transportadora: str | None = Field(default=None, nullable=True)
     status_agendamento: str | None = Field(default=None, nullable=True)
@@ -29,13 +30,13 @@ class Carregamentos(SQLModel, table = True):
     data_inspecao: Date | None = Field(default=None, nullable=True)
     cdk_tratativa: str | None = Field(default=None, nullable=True)
     cobrancas_html: str | None = Field(default=None, nullable=True)
-    cobrancas_itens: str | None = Field(default=None, nullable=True) # JSON Array (type notation: json[])
+    cobrancas_itens: str | None = Field(default=None, nullable=True) # JSON 
     data_solicitacao_isencao: Date | None = Field(default=None, nullable=True)
     valor_devido: float | None = Field(default=None, nullable=True)
-    pagamento_realizado: bool = Field(default=False, nullable=False)
-    arquivos_enviados: str = Field(nullable=False) # JSON Array (type notation: json[])
-    processo_finalizado: bool = Field(default=False, nullable=False)
     titulo_financeiro: str | None = Field(nullable=True) # JSON
+    pagamento_realizado: bool = Field(default=False, nullable=False)
+    arquivos_enviados: str = Field(nullable=False) # JSON 
+    processo_finalizado: bool = Field(default=False, nullable=False)
     excluido: bool = Field(default=False, nullable=False)
 
 class Dados_tol(SQLModel, table=True):
